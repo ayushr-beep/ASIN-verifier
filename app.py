@@ -5,9 +5,15 @@ import re
 import random
 import time
 import io
+from pathlib import Path
 from bs4 import BeautifulSoup
 from openpyxl import load_workbook
 from openpyxl.styles import PatternFill, Font, Alignment
+
+BRAND_ORANGE = "#F58220"
+BRAND_NAVY = "#1F2A44"
+LOGO_PATH = Path(__file__).parent / "assets" / "virventures-logo.svg"
+
  
 # ── Page config ────────────────────────────────────────────
 st.set_page_config(
@@ -18,145 +24,149 @@ st.set_page_config(
 )
  
 # ── Custom CSS ─────────────────────────────────────────────
-st.markdown("""
+st.markdown(f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=DM+Sans:wght@400;500;600&display=swap');
  
 html, body, [class*="css"] {
     font-family: 'DM Sans', sans-serif;
+    color: {BRAND_NAVY};
 }
  
-.main { background-color: #0d0d0d; }
+.main {{ background-color: #ffffff; }}
  
 h1, h2, h3 {
-    font-family: 'Space Mono', monospace !important;
+    font-family: 'Montserrat', sans-serif !important;
+    letter-spacing: 0.3px;
 }
  
 .stApp {
-    background: #0d0d0d;
+    background: #ffffff;
 }
  
 /* Sidebar */
 section[data-testid="stSidebar"] {
-    background: #111 !important;
-    border-right: 1px solid #222;
+    background: #ffffff !important;
+    border-right: 1px solid #1F2A4420;
 }
  
 /* Metric cards */
 div[data-testid="metric-container"] {
-    background: #1a1a1a;
-    border: 1px solid #2a2a2a;
-    border-radius: 8px;
-    padding: 16px;
+    background: #ffffff;
+    border: 1px solid #1F2A4425;
+    border-radius: 12px;
+    padding: 14px 16px;
+    box-shadow: 0 3px 14px #1F2A440D;
 }
  
 /* Buttons */
 .stButton > button {
-    background: #00ff87 !important;
-    color: #000 !important;
-    font-family: 'Space Mono', monospace !important;
+    background: {BRAND_ORANGE} !important;
+    color: #ffffff !important;
+    font-family: 'Montserrat', sans-serif !important;
     font-weight: 700 !important;
     border: none !important;
-    border-radius: 4px !important;
+    border-radius: 8px !important;
     padding: 12px 32px !important;
     font-size: 14px !important;
-    letter-spacing: 1px !important;
+    letter-spacing: 0.6px !important;
     transition: all 0.2s ease !important;
 }
  
 .stButton > button:hover {
-    background: #00cc6a !important;
+    background: #DB6E11 !important;
     transform: translateY(-1px);
-    box-shadow: 0 4px 20px rgba(0,255,135,0.3) !important;
+    box-shadow: 0 8px 20px #F5822040 !important;
 }
  
 /* Download button */
 .stDownloadButton > button {
-    background: #1a1a1a !important;
-    color: #00ff87 !important;
-    border: 1px solid #00ff87 !important;
-    font-family: 'Space Mono', monospace !important;
+    background: #ffffff !important;
+    color: {BRAND_NAVY} !important;
+    border: 1px solid #1F2A4460 !important;
+    font-family: 'Montserrat', sans-serif !important;
     font-weight: 700 !important;
-    border-radius: 4px !important;
+    border-radius: 8px !important;
     padding: 10px 24px !important;
 }
  
 .stDownloadButton > button:hover {
-    background: #00ff8722 !important;
+    background: #F5822014 !important;
 }
  
 /* Progress bar */
 .stProgress > div > div {
-    background: #00ff87 !important;
+    background: {BRAND_ORANGE} !important;
 }
  
 /* Dataframe */
 .stDataFrame {
-    border: 1px solid #222 !important;
-    border-radius: 8px !important;
+    border: 1px solid #1F2A4420 !important;
+    border-radius: 12px !important;
 }
  
 /* Status badges */
 .badge-verified {
-    background: #0a2e1a;
-    color: #00ff87;
+    background: #F5822014;
+    color: {BRAND_NAVY};
     padding: 3px 10px;
     border-radius: 20px;
     font-size: 12px;
     font-weight: 600;
-    border: 1px solid #00ff8740;
+    border: 1px solid #F582204A;
 }
 .badge-failed {
-    background: #2e0a0a;
-    color: #ff4444;
+    background: #1F2A4412;
+    color: {BRAND_NAVY};
     padding: 3px 10px;
     border-radius: 20px;
     font-size: 12px;
     font-weight: 600;
-    border: 1px solid #ff444440;
+    border: 1px solid #1F2A444A;
 }
 .badge-warning {
-    background: #2e2200;
-    color: #ffaa00;
+    background: #F5822018;
+    color: {BRAND_ORANGE};
     padding: 3px 10px;
     border-radius: 20px;
     font-size: 12px;
     font-weight: 600;
-    border: 1px solid #ffaa0040;
+    border: 1px solid #F582204A;
 }
  
 /* Header */
 .app-header {
-    padding: 2rem 0 1rem 0;
-    border-bottom: 1px solid #222;
-    margin-bottom: 2rem;
+    padding: 0.45rem 0 1rem 0;
+    border-bottom: 1px solid #1F2A4425;
+    margin-bottom: 1.6rem;
 }
  
 /* Log box */
 .log-box {
-    background: #0a0a0a;
-    border: 1px solid #1e1e1e;
-    border-radius: 8px;
+    background: #ffffff;
+    border: 1px solid #1F2A4420;
+    border-radius: 12px;
     padding: 16px;
-    font-family: 'Space Mono', monospace;
+    font-family: 'Montserrat', sans-serif;
     font-size: 12px;
-    color: #888;
+    color: {BRAND_NAVY};
     max-height: 300px;
     overflow-y: auto;
 }
  
 /* File uploader */
 .stFileUploader {
-    border: 2px dashed #333 !important;
-    border-radius: 8px !important;
-    background: #111 !important;
+    border: 2px dashed #F5822080 !important;
+    border-radius: 12px !important;
+    background: #ffffff !important;
 }
  
 /* Select boxes & inputs */
 .stSelectbox > div > div, .stNumberInput > div > div {
-    background: #1a1a1a !important;
-    border-color: #333 !important;
-    color: #fff !important;
+    background: #ffffff !important;
+    border-color: #1F2A4435 !important;
+    color: {BRAND_NAVY} !important;
+    border-radius: 8px !important;
 }
  
 /* Info / warning boxes */
@@ -166,9 +176,18 @@ div[data-testid="metric-container"] {
  
 /* expander */
 .streamlit-expanderHeader {
-    background: #1a1a1a !important;
-    border-radius: 8px !important;
+    background: #ffffff !important;
+    border-radius: 10px !important;
+    border: 1px solid #1F2A4420 !important;
 }
+
+[data-testid="stMetricLabel"], [data-testid="stMetricValue"] {{
+    color: {BRAND_NAVY} !important;
+}}
+
+[data-testid="stToolbar"] {{
+    right: 0.5rem;
+}}
 </style>
 """, unsafe_allow_html=True)
  
@@ -194,6 +213,10 @@ HEADERS_POOL = [
 ]
  
 STOPWORDS = {"a","an","the","and","or","for","of","in","to","with","by","is","it","its","–","-","&"}
+REQUEST_TIMEOUT = 15
+
+SESSION = requests.Session()
+SESSION.headers.update({"Connection": "keep-alive"})
  
  
 # ══════════════════════════════════════════════════════════
@@ -202,10 +225,10 @@ STOPWORDS = {"a","an","the","and","or","for","of","in","to","with","by","is","it
  
 def fetch_page(asin):
     try:
-        r = requests.get(
+        r = SESSION.get(
             f"https://www.amazon.com/dp/{asin}",
             headers=random.choice(HEADERS_POOL),
-            timeout=15
+            timeout=REQUEST_TIMEOUT
         )
         return BeautifulSoup(r.text, "lxml") if r.status_code == 200 else None
     except Exception:
@@ -353,16 +376,22 @@ def build_output_excel(df):
 # UI — Header
 # ══════════════════════════════════════════════════════════
  
-st.markdown("""
-<div class="app-header">
-    <h1 style="color:#00ff87; font-size:2rem; margin:0; letter-spacing:-1px;">
-        🔍 ASIN VERIFIER
-    </h1>
-    <p style="color:#555; font-family:'Space Mono',monospace; font-size:12px; margin:4px 0 0 0;">
-        BB PRICE · DESCRIPTION MATCH · 100% AUTHENTIC CHECK
-    </p>
-</div>
-""", unsafe_allow_html=True)
+logo_col, title_col = st.columns([1.05, 2.95], vertical_alignment="center")
+with logo_col:
+    if LOGO_PATH.exists():
+        st.image(str(LOGO_PATH), width=210)
+
+with title_col:
+    st.markdown(f"""
+    <div class="app-header">
+        <h1 style="color:{BRAND_NAVY}; font-size:2.15rem; margin:0; font-weight:800; line-height:1.05;">
+            ASIN VERIFIER
+        </h1>
+        <p style="color:{BRAND_ORANGE}; font-family:'Montserrat',sans-serif; font-size:12px; margin:7px 0 0 0; font-weight:700; letter-spacing:0.5px;">
+            VIRVENTURES · BB PRICE · DESCRIPTION MATCH · AUTHENTICITY CHECK
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
  
  
 # ══════════════════════════════════════════════════════════
@@ -403,7 +432,7 @@ with st.sidebar:
  
     st.markdown("---")
     st.markdown(
-        "<p style='color:#444; font-size:11px; font-family:Space Mono,monospace;'>"
+        "<p style='color:#1F2A44; font-size:11px; font-family:Space Mono,monospace;'>"
         "Built for your team ⚡<br>Powered by Python + Streamlit</p>",
         unsafe_allow_html=True
     )
@@ -506,6 +535,7 @@ if uploaded_file:
             live_table   = st.empty()
  
             log_rows = []  # for live table
+            asin_cache = {}
  
             for i, row in df_raw.iterrows():
                 asin    = str(row.get(ASIN_COL, "")).strip()
@@ -520,8 +550,8 @@ if uploaded_file:
                 progress = row_num / total_rows
                 progress_bar.progress(progress)
                 status_text.markdown(
-                    f"<p style='color:#555; font-family:Space Mono,monospace; font-size:12px;'>"
-                    f"Processing row {row_num}/{total_rows} — <b style='color:#00ff87'>{asin}</b></p>",
+                    f"<p style='color:{BRAND_NAVY}; font-family:Montserrat,sans-serif; font-size:12px; font-weight:600;'>"
+                    f"Processing row {row_num}/{total_rows} — <b style='color:#F58220'>{asin}</b></p>",
                     unsafe_allow_html=True
                 )
  
@@ -536,7 +566,13 @@ if uploaded_file:
                     live_table.dataframe(pd.DataFrame(log_rows).tail(10), use_container_width=True)
                     continue
  
-                soup = fetch_page(asin)
+                request_made = False
+                if asin in asin_cache:
+                    soup = asin_cache[asin]
+                else:
+                    soup = fetch_page(asin)
+                    asin_cache[asin] = soup
+                    request_made = True
  
                 if soup is None:
                     for k in results: results[k].append("FETCH FAILED")
@@ -546,7 +582,8 @@ if uploaded_file:
                         "Live BB": "—", "Match": "—", "Status": "❌ Fetch failed"
                     })
                     live_table.dataframe(pd.DataFrame(log_rows).tail(10), use_container_width=True)
-                    time.sleep(DELAY)
+                    if request_made:
+                        time.sleep(DELAY)
                     continue
  
                 live_bb_float, live_bb_str = get_live_bb_price(soup)
@@ -592,12 +629,13 @@ if uploaded_file:
                 })
                 live_table.dataframe(pd.DataFrame(log_rows).tail(10), use_container_width=True)
  
-                time.sleep(random.uniform(DELAY - 0.5, DELAY + 0.5))
+                if request_made:
+                    time.sleep(random.uniform(max(1.5, DELAY - 0.5), DELAY + 0.5))
  
             # ── Finalize
             progress_bar.progress(1.0)
             status_text.markdown(
-                "<p style='color:#00ff87; font-family:Space Mono,monospace; font-size:13px; font-weight:bold;'>"
+                "<p style='color:#1F2A44; font-family:Montserrat,sans-serif; font-size:13px; font-weight:700;'>"
                 "✅ VERIFICATION COMPLETE</p>",
                 unsafe_allow_html=True
             )
@@ -643,17 +681,16 @@ else:
     <div style="
         text-align:center;
         padding: 80px 40px;
-        border: 1px dashed #222;
+        border: 1px dashed #F58220;
         border-radius: 12px;
         margin-top: 20px;
     ">
         <p style="font-size:48px; margin:0;">📂</p>
-        <p style="color:#444; font-family:'Space Mono',monospace; font-size:14px; margin:8px 0 0 0;">
+        <p style="color:#1F2A44; font-family:'Space Mono',monospace; font-size:14px; margin:8px 0 0 0;">
             Upload your Excel file above to get started
         </p>
-        <p style="color:#333; font-size:12px; margin:8px 0 0 0;">
+        <p style="color:#F58220; font-size:12px; margin:8px 0 0 0;">
             Supports .xlsx — works with any fresh file you receive
         </p>
     </div>
     """, unsafe_allow_html=True)
- 
