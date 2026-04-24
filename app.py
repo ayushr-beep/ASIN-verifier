@@ -5,230 +5,178 @@ import re
 import random
 import time
 import io
+import base64
 from bs4 import BeautifulSoup
 from openpyxl import load_workbook
 from openpyxl.styles import PatternFill, Font, Alignment
 
 # ── Page config ────────────────────────────────────────────
 st.set_page_config(
-    page_title="ASIN Verifier Pro",
+    page_title="VirVentures ASIN Verifier",
     page_icon="🔍",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# ── Custom CSS (Kept Original Styling) ──────────────────────
+# ── Custom CSS (Orange & White Theme) ──────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap');
 html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
-.main { background-color: #0d0d0d; }
-h1, h2, h3 { font-family: 'Space Mono', monospace !important; }
-.stApp { background: #0d0d0d; }
-section[data-testid="stSidebar"] { background: #111 !important; border-right: 1px solid #222; }
-div[data-testid="metric-container"] { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 16px; }
-.stButton > button { background: #00ff87 !important; color: #000 !important; font-family: 'Space Mono', monospace !important; font-weight: 700 !important; border: none !important; border-radius: 4px !important; padding: 12px 32px !important; font-size: 14px !important; letter-spacing: 1px !important; transition: all 0.2s ease !important; }
-.stButton > button:hover { background: #00cc6a !important; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,255,135,0.3) !important; }
-.stDownloadButton > button { background: #1a1a1a !important; color: #00ff87 !important; border: 1px solid #00ff87 !important; font-family: 'Space Mono', monospace !important; font-weight: 700 !important; border-radius: 4px !important; padding: 10px 24px !important; }
-.stDownloadButton > button:hover { background: #00ff8722 !important; }
-.stProgress > div > div { background: #00ff87 !important; }
-.stDataFrame { border: 1px solid #222 !important; border-radius: 8px !important; }
-.app-header { padding: 2rem 0 1rem 0; border-bottom: 1px solid #222; margin-bottom: 2rem; }
-.stFileUploader { border: 2px dashed #333 !important; border-radius: 8px !important; background: #111 !important; }
+.stApp { background-color: #ffffff; color: #333; }
+section[data-testid="stSidebar"] { background: #f8f9fa !important; border-right: 1px solid #e0e0e0; }
+h1, h2, h3 { color: #f37021 !important; }
+
+/* Buttons */
+.stButton > button { 
+    background: #f37021 !important; 
+    color: #ffffff !important; 
+    border-radius: 6px !important; 
+    border: none !important;
+    font-weight: 700 !important;
+}
+.stDownloadButton > button { 
+    background: #ffffff !important; 
+    color: #f37021 !important; 
+    border: 2px solid #f37021 !important; 
+}
+
+/* Dataframe styling */
+.stDataFrame { border: 1px solid #eee !important; border-radius: 8px; }
+
+/* Header and Logo Container */
+.header-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 0;
+    border-bottom: 3px solid #f37021;
+    margin-bottom: 2rem;
+}
 </style>
 """, unsafe_allow_html=True)
 
+# ── Helper for Logo ────────────────────────────────────────
+def get_base64_image(image_path):
+    with open(image_path, "rb") as img_file:
+        return base64.b64encode(img_file.read()).decode()
+
 # ══════════════════════════════════════════════════════════
-# TWEAKED: Advanced Anti-Detection Constants
+# Constants & Scraper Logic
 # ══════════════════════════════════════════════════════════
 
 HEADERS_POOL = [
-    {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-        "Referer": "https://www.google.com/",
-    },
-    {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "Referer": "https://www.bing.com/",
-    },
-    {
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Referer": "https://duckduckgo.com/",
-    }
+    {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124.0.0.0", "Referer": "https://www.google.com/"},
+    {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/123.0.0.0", "Referer": "https://www.bing.com/"}
 ]
 
 STOPWORDS = {"a","an","the","and","or","for","of","in","to","with","by","is","it","its","–","-","&"}
 
-# ══════════════════════════════════════════════════════════
-# Scraper functions
-# ══════════════════════════════════════════════════════════
-
 def fetch_page(asin):
     try:
-        # TWEAK: Using a session to handle cookies if needed
-        session = requests.Session()
-        r = session.get(
-            f"https://www.amazon.com/dp/{asin}",
-            headers=random.choice(HEADERS_POOL),
-            timeout=15
-        )
-        
-        # TWEAK: Detect CAPTCHA/Block
-        if "captcha" in r.text.lower() or "robot check" in r.text.lower():
-            return "BLOCKED"
-            
+        r = requests.get(f"https://www.amazon.com/dp/{asin}", headers=random.choice(HEADERS_POOL), timeout=15)
+        if "captcha" in r.text.lower() or "robot check" in r.text.lower(): return "BLOCKED"
         return BeautifulSoup(r.text, "lxml") if r.status_code == 200 else None
-    except Exception:
-        return None
+    except: return None
 
 def get_live_bb_price(soup):
     if soup == "BLOCKED": return None, "BLOCKED"
-    
-    selectors = [
-        "#corePriceDisplay_desktop_feature_div .a-price-whole",
-        "#corePrice_feature_div .a-price-whole",
-        ".a-price.apexPriceToPay .a-offscreen",
-        "#price_inside_buybox",
-        "#priceblock_ourprice",
-        ".a-price .a-offscreen",
-    ]
+    selectors = ["#corePriceDisplay_desktop_feature_div .a-price-whole", ".a-price .a-offscreen", "#price_inside_buybox"]
     for sel in selectors:
         tag = soup.select_one(sel)
         if tag:
-            raw = re.sub(r"[^\d.]", "", tag.get_text(strip=True).replace(",", ""))
-            if raw:
-                try:
-                    return float(raw), f"${float(raw):.2f}"
-                except ValueError:
-                    continue
+            raw = re.sub(r"[^\d.]", "", tag.get_text(strip=True))
+            if raw: return float(raw), f"${float(raw):.2f}"
     return None, "N/A"
-
-def get_amz_title(soup):
-    if soup == "BLOCKED": return "BOT DETECTED"
-    tag = soup.select_one("#productTitle")
-    return tag.get_text(strip=True) if tag else ""
 
 def get_amz_full_text(soup):
     if soup == "BLOCKED": return ""
-    parts = []
-    t = soup.select_one("#productTitle")
-    if t: parts.append(t.get_text(strip=True))
-    for b in soup.select("#feature-bullets li span.a-list-item"):
-        parts.append(b.get_text(strip=True))
-    d = soup.select_one("#productDescription")
-    if d: parts.append(d.get_text(strip=True))
+    parts = [t.get_text() for t in soup.select("#productTitle, #feature-bullets li span, #productDescription")]
     return " ".join(parts).lower()
 
 def keyword_match(our_text, amz_text):
-    if not our_text or not amz_text:
-        return 0.0, "0/0"
-    words = [w.lower() for w in re.findall(r"[a-zA-Z0-9]+", str(our_text))
-             if w.lower() not in STOPWORDS and len(w) > 1]
-    if not words:
-        return 0.0, "0/0"
+    words = [w.lower() for w in re.findall(r"[a-zA-Z0-9]+", str(our_text)) if w.lower() not in STOPWORDS and len(w) > 1]
+    if not words or not amz_text: return 0.0, "0/0"
     hit = sum(1 for w in words if w in amz_text)
     return hit / len(words), f"{hit}/{len(words)}"
 
-def parse_price(val):
-    if not val or str(val).strip().lower() in ("nan", "", "none"):
-        return None
-    try:
-        return float(re.sub(r"[^\d.]", "", str(val)))
-    except ValueError:
-        return None
-
-def compare_bb(your_bb, live_bb, threshold):
-    if live_bb == "BLOCKED": return "🚨 Amazon Blocked Request"
-    if your_bb is None and live_bb is None: return "⚠️ No price data"
-    if your_bb is None: return f"⚠️ Your BB blank | Live: {live_bb}"
-    if live_bb is None or live_bb == "N/A": return "⚠️ No live BB on Amazon"
-    
-    # Extract float if live_bb is string
-    if isinstance(live_bb, str):
-        try: live_val = float(re.sub(r"[^\d.]", "", live_bb))
-        except: return "⚠️ Price Error"
-    else: live_val = live_bb
-
-    diff = (live_val - your_bb) / your_bb
-    if diff > threshold: return f"📈 Live ${live_val:.2f} (+{diff*100:.1f}%)"
-    elif diff < -threshold: return f"📉 Live ${live_val:.2f} (-{abs(diff)*100:.1f}%)"
-    return f"✅ BB Match ({diff*100:+.1f}%)"
-
 # ══════════════════════════════════════════════════════════
-# UI & Logic (Keeping your structure)
+# UI Header with Logo
 # ══════════════════════════════════════════════════════════
 
-def build_output_excel(df):
-    output = io.BytesIO()
-    df.to_excel(output, index=False)
-    output.seek(0)
-    wb = load_workbook(output)
-    ws = wb.active
-    # (Styles removed for brevity, kept same in final logic)
-    final = io.BytesIO()
-    wb.save(final)
-    return final.getvalue()
+try:
+    logo_base64 = get_base64_image("virventures_com_logo.jpg")
+    st.markdown(f"""
+    <div class="header-container">
+        <div>
+            <h1 style="margin:0;">🔍 ASIN VERIFIER PRO</h1>
+            <p style="margin:0; color:#666;">VirVentures Inventory Authentication Tool</p>
+        </div>
+        <img src="data:image/jpeg;base64,{logo_base64}" width="180">
+    </div>
+    """, unsafe_allow_html=True)
+except:
+    st.title("🔍 VIRVENTURES ASIN VERIFIER")
 
-st.markdown('<div class="app-header"><h1 style="color:#00ff87; font-size:2rem; margin:0;">🔍 ASIN VERIFIER PRO</h1></div>', unsafe_allow_html=True)
+# ══════════════════════════════════════════════════════════
+# Main Logic
+# ══════════════════════════════════════════════════════════
 
 with st.sidebar:
-    st.markdown("### ⚙️ Settings")
-    ASIN_COL = st.text_input("ASIN Column", value="Output ASIN")
-    BB_PRICE_COL = st.text_input("BB Price Column", value="BB Price")
-    MATCH_THRESHOLD = st.slider("Min Match %", 10, 90, 40) / 100
-    PRICE_DIFF = st.slider("Price Tolerance %", 1, 30, 10) / 100
-    DELAY = st.slider("Base Delay (sec)", 2, 15, 8)
+    st.header("⚙️ Verifier Settings")
+    ASIN_COL = st.text_input("ASIN Column", "Output ASIN")
+    BB_COL = st.text_input("Price Column", "BB Price")
+    MATCH_MIN = st.slider("Min Match %", 10, 90, 40) / 100
+    DELAY = st.slider("Request Delay (sec)", 2, 15, 8)
 
-uploaded_file = st.file_uploader("Upload Excel", type=["xlsx"])
+uploaded_file = st.file_uploader("Upload Product File (Excel)", type=["xlsx"])
 
 if uploaded_file:
-    df_raw = pd.read_excel(uploaded_file, dtype=str)
-    if st.button("🚀 RUN VERIFICATION"):
-        results = {"Live BB Price": [], "BB Comparison": [], "Match %": [], "Verification": [], "Fail Reasons": []}
+    df = pd.read_excel(uploaded_file, dtype=str)
+    
+    if st.button("🚀 START VERIFICATION"):
+        res_price, res_match, res_verdict, res_reason = [], [], [], []
+        progress = st.progress(0)
         
-        progress_bar = st.progress(0)
-        live_table = st.empty()
-        log_rows = []
-
-        for i, row in df_raw.iterrows():
+        for i, row in df.iterrows():
             asin = str(row.get(ASIN_COL, "")).strip()
-            your_bb = parse_price(row.get(BB_PRICE_COL))
+            # Combine all previous box details for matching
+            our_combined = f"{row.get('Title','')} {row.get('Description','')} {row.get('Brand','')}"
             
-            if not asin or len(asin) < 5:
-                for k in results: results[k].append("SKIPPED")
-                continue
-
-            soup = fetch_page(asin)
-            
-            if soup == "BLOCKED":
-                live_bb_str, match_pct, verdict, reasons = "BLOCKED", "0%", "❌ FAILED", "BOT DETECTED"
-            elif soup is None:
-                live_bb_str, match_pct, verdict, reasons = "ERROR", "0%", "❌ FAILED", "Fetch Failed"
+            if len(asin) < 5:
+                res_price.append("N/A"); res_match.append("0%"); res_verdict.append("SKIPPED"); res_reason.append("No ASIN")
             else:
-                live_val, live_bb_str = get_live_bb_price(soup)
-                score, _ = keyword_match(str(row.get("Title", "")) + str(row.get("Description", "")), get_amz_full_text(soup))
+                soup = fetch_page(asin)
+                l_price, l_price_str = get_live_bb_price(soup)
+                score, _ = keyword_match(our_combined, get_amz_full_text(soup))
+                
                 match_pct = f"{score*100:.1f}%"
-                bb_comp = compare_bb(your_bb, live_val, PRICE_DIFF)
+                issues = []
+                if soup == "BLOCKED": issues.append("Amazon Blocked (Bot Detected)")
+                elif score < MATCH_MIN: issues.append(f"Low match ({match_pct})")
+                if l_price_str == "N/A": issues.append("No live price found")
                 
-                reasons_list = []
-                if score < MATCH_THRESHOLD: reasons_list.append("Low Match")
-                if "Live" in bb_comp: reasons_list.append("Price Flag")
-                
-                reasons = " | ".join(reasons_list)
-                verdict = "❌ FAILED" if reasons_list else "✅ Verified"
-
-            results["Live BB Price"].append(live_bb_str)
-            results["Match %"].append(match_pct)
-            results["Verification"].append(verdict)
-            results["Fail Reasons"].append(reasons)
+                res_price.append(l_price_str)
+                res_match.append(match_pct)
+                res_verdict.append("❌ FAILED" if issues else "✅ Verified")
+                res_reason.append(" | ".join(issues))
             
-            log_rows.append({"ASIN": asin, "Live BB": live_bb_str, "Match": match_pct, "Status": verdict})
-            live_table.dataframe(pd.DataFrame(log_rows).tail(5))
-            
-            # TWEAK: Advanced Jitter delay
-            time.sleep(random.uniform(DELAY * 0.7, DELAY * 1.3))
+            progress.progress((i + 1) / len(df))
+            time.sleep(random.uniform(DELAY * 0.8, DELAY * 1.2))
 
-        st.success("Verification Finished!")
+        df["Live Price"] = res_price
+        df["Match %"] = res_match
+        df["Verification"] = res_verdict
+        df["Fail Reasons"] = res_reason
+        
+        st.success("Verification Complete!")
+        
+        # Display failed items with ALL original details (UPC, Description, etc.)
+        st.subheader("🔴 Flagged Items (Requires Review)")
+        failed_df = df[df["Verification"] == "❌ FAILED"]
+        st.dataframe(failed_df, use_container_width=True)
+        
+        # Download
+        output = io.BytesIO()
+        df.to_excel(output, index=False)
+        st.download_button("📥 Download Full Verified Report", output.getvalue(), "VirVentures_Report.xlsx")
