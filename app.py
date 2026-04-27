@@ -35,7 +35,7 @@ def get_logo_b64():
 LOGO_B64 = get_logo_b64()
 LOGO_HTML = (
     f'<img src="data:image/jpeg;base64,{LOGO_B64}" '
-    f'style="height:60px;margin-right:20px;vertical-align:middle;border-radius:8px;">'
+    f'style="height:64px;width:auto;border-radius:10px;flex-shrink:0;background:#ffffff;padding:6px;box-shadow:0 2px 12px rgba(0,0,0,0.2);">'
     if LOGO_B64 else ""
 )
 
@@ -62,11 +62,45 @@ st.markdown("""
     margin-bottom: 28px;
     display: flex;
     align-items: center;
+    gap: 20px;
     box-shadow: 0 8px 32px rgba(30,45,78,0.15);
     border-left: 6px solid #f47920;
 }
-.vv-title { color: #fff !important; font-size: 1.3rem; font-weight: 800; margin: 0 0 5px 0; line-height: 1.4; }
-.vv-sub   { color: #f47920; font-size: 0.8rem; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; margin: 0; }
+.vv-header img {
+    height: 64px !important;
+    width: auto !important;
+    border-radius: 10px !important;
+    flex-shrink: 0 !important;
+    background: #fff;
+    padding: 4px;
+}
+.vv-header-text {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.vv-title {
+    color: #ffffff !important;
+    font-size: 1.25rem !important;
+    font-weight: 800 !important;
+    margin: 0 !important;
+    line-height: 1.45 !important;
+    text-shadow: none !important;
+}
+.vv-sub {
+    color: #f47920 !important;
+    font-size: 0.78rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 1.8px !important;
+    text-transform: uppercase !important;
+    margin: 0 !important;
+    opacity: 1 !important;
+    background: rgba(244,121,32,0.12);
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(244,121,32,0.3);
+}
 
 /* ── Sidebar: white with orange accents ── */
 section[data-testid="stSidebar"] {
@@ -170,11 +204,17 @@ div[data-testid="metric-container"] div[data-testid="metric-value"] { color: #1e
     border-radius: 16px; margin-top: 16px;
 }
 
-/* General text */
-p, span, div, li { color: #333 !important; }
+/* General text — scoped so it doesn't override header */
+.block-container p,
+.block-container span,
+.block-container li { color: #333 !important; }
 h1, h2, h3, h4 { color: #1e2d4e !important; }
 code { background: #f0f4ff !important; color: #1e2d4e !important; border-radius: 4px; padding: 2px 6px; }
 .stAlert { border-radius: 10px !important; }
+
+/* Force header text to stay white/orange regardless of global overrides */
+.vv-header .vv-title { color: #ffffff !important; }
+.vv-header .vv-sub   { color: #f47920 !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -184,10 +224,14 @@ code { background: #f0f4ff !important; color: #1e2d4e !important; border-radius:
 st.markdown(f"""
 <div class="vv-header">
     {LOGO_HTML}
-    <div>
-        <p class="vv-title">Hi VirVentures 👋 — I am trained with an accuracy of 90%,<br>
-        let's get started with your ASIN Verification!</p>
-        <p class="vv-sub">🔍 Live BB Price · Smart Description Match · Retry Engine · Accuracy Score</p>
+    <div class="vv-header-text">
+        <p class="vv-title" style="color:#ffffff !important; font-size:1.25rem; font-weight:800; margin:0; line-height:1.45;">
+            Hi VirVentures 👋 &mdash; I am trained with an accuracy of 90%,<br>
+            let&apos;s get started with your ASIN Verification!
+        </p>
+        <p class="vv-sub" style="color:#f47920 !important; font-size:0.78rem; font-weight:700; letter-spacing:1.8px; text-transform:uppercase; margin:0;">
+            🔍 Live BB Price &nbsp;·&nbsp; Smart Description Match &nbsp;·&nbsp; Retry Engine &nbsp;·&nbsp; Accuracy Score
+        </p>
     </div>
 </div>
 """, unsafe_allow_html=True)
