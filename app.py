@@ -177,9 +177,37 @@ div[data-testid="metric-container"] div[data-testid="metric-value"] { color: #1e
     background: #fff !important;
     border: 2px dashed #e0e0e0 !important;
     border-radius: 12px !important;
-    padding: 10px !important;
+    padding: 16px !important;
 }
-[data-testid="stFileUploader"]:hover { border-color: #f47920 !important; }
+[data-testid="stFileUploader"]:hover {
+    border-color: #f47920 !important;
+    background: #fff8f3 !important;
+}
+/* Fix duplicate button label bug */
+[data-testid="stFileUploaderDropzone"] {
+    border: none !important;
+    background: transparent !important;
+}
+[data-testid="stFileUploaderDropzoneInstructions"] {
+    padding: 10px 0 !important;
+}
+[data-testid="stFileUploaderDropzoneInstructions"] span {
+    color: #888 !important;
+    font-size: 14px !important;
+}
+/* Upload button: orange style */
+[data-testid="stFileUploaderDropzone"] button {
+    background: #f47920 !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: 8px !important;
+    font-weight: 700 !important;
+    padding: 8px 20px !important;
+    font-size: 14px !important;
+}
+[data-testid="stFileUploaderDropzone"] button:hover {
+    background: #d4640e !important;
+}
 
 /* ── Section title ── */
 .sec { color: #1e2d4e; font-size: 1rem; font-weight: 800; padding-bottom: 6px;
@@ -606,11 +634,36 @@ with st.sidebar:
 # ══════════════════════════════════════════════════════════
 # File Upload
 # ══════════════════════════════════════════════════════════
-st.markdown('<p class="sec">📂 Upload Your File</p>', unsafe_allow_html=True)
+
+st.markdown("""
+<div style="
+    background: linear-gradient(135deg, #fff8f3 0%, #fff3e8 100%);
+    border: 2px solid #f47920;
+    border-radius: 14px;
+    padding: 22px 28px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 2px 12px rgba(244,121,32,0.10);
+">
+    <span style="font-size:2.2rem; flex-shrink:0;">📋</span>
+    <div>
+        <p style="color:#1e2d4e !important; font-size:1.05rem; font-weight:800; margin:0 0 4px 0;">
+            Please upload your file and let me do this work for you!
+        </p>
+        <p style="color:#f47920 !important; font-size:0.85rem; font-weight:600; margin:0;">
+            I will auto-detect all your columns, verify every ASIN, check BB prices and descriptions — and hand you back a clean colour-coded report.
+        </p>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 uploaded = st.file_uploader(
-    "Drop any .xlsx file — columns detected automatically, any format works",
+    "Upload Excel",
     type=["xlsx", "xls"],
+    label_visibility="collapsed",
+    help="Supports .xlsx and .xls — any column layout works",
 )
 
 # ══════════════════════════════════════════════════════════
@@ -840,9 +893,17 @@ if uploaded:
 
 else:
     st.markdown("""
-    <div class="empty-state">
-        <p style="font-size:52px;margin:0;">📂</p>
-        <p style="color:#1e2d4e;font-weight:800;font-size:18px;margin:14px 0 6px;">Drop your Excel file above to begin</p>
-        <p style="color:#999;font-size:13px;margin:0;">Any .xlsx file works · Columns auto-detected · No manual config needed</p>
+    <div style="text-align:center; padding:60px 40px; background:#fff;
+                border:2px dashed #f47920; border-radius:16px; margin-top:8px;">
+        <p style="font-size:3rem; margin:0;">🔍</p>
+        <p style="color:#1e2d4e !important; font-weight:800; font-size:1.2rem; margin:14px 0 6px;">
+            Waiting for your file...
+        </p>
+        <p style="color:#f47920 !important; font-size:0.9rem; font-weight:600; margin:0 0 6px;">
+            Upload your .xlsx above and I'll handle everything automatically
+        </p>
+        <p style="color:#aaa !important; font-size:0.8rem; margin:0;">
+            Any column layout works &nbsp;·&nbsp; No config needed &nbsp;·&nbsp; Results ready in minutes
+        </p>
     </div>
     """, unsafe_allow_html=True)
