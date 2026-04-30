@@ -105,7 +105,7 @@ section[data-testid="stSidebar"] .stTextInput input, section[data-testid="stSide
 # LOGO HANDLER
 # ══════════════════════════════════════════════════════════
 def get_logo_b64():
-    for p in ["virventures_logo.jpg", "virventures_com_logo.jpg"]:
+    for p in ["virventures_logo.jpg", "virventures_logo.jpg"]:
         if os.path.exists(p):
             with open(p, "rb") as f: return base64.b64encode(f.read()).decode()
     return None
@@ -120,7 +120,7 @@ st.markdown(f"""
 <div class="hero-card">
     <div class="hero-logo">{LOGO_EMOJI}VV</div>
     <div>
-        <p class="hero-title">Hi VirVentures 👋 — I am trained with an accuracy of 90%, let&apos;s get started!</p>
+        <p class="hero-title">Hi VirVentures 👋 I am trained with an accuracy of 90%, let&apos;s get started!</p>
         <p class="hero-sub">🔍 Live BB Price &nbsp;·&nbsp; Auto Recalculation &nbsp;·&nbsp; P&amp;L Remarks &nbsp;·&nbsp; Confidence Validation</p>
     </div>
 </div>
