@@ -1,4 +1,4 @@
- =============================================================================
+
 #  VirVentures ASIN Verifier — v6.0 Production
 #  Senior Engineer Build: Semantic ML · FBA/FBM Detection · Price Ranges
 #  SQLite Cache · ThreadPoolExecutor · Exponential Backoff · Cookie Auth
